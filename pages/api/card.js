@@ -132,7 +132,7 @@ export default async function handler(req, res) {
 
   <text x="460" y="292" text-anchor="middle" font-size="12" font-weight="700"
         fill="rgba(210,255,232,0.50)" font-family="system-ui,Segoe UI,Roboto,Arial">
-    Auto-updated • GitHub API • Vercel
+    --
   </text>
 </svg>`.trim();
 
