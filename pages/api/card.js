@@ -63,7 +63,7 @@ export default async function handler(req, res) {
     const login = escapeXML(username);
 
     const svg = `
-<svg xmlns="http://www.w3.org/2000/svg" width="920" height="280" viewBox="0 0 920 280">
+<svg xmlns="http://www.w3.org/2000/svg" width="920" height="310" viewBox="0 0 920 310">
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0%" stop-color="#050705"/>
@@ -80,10 +80,10 @@ export default async function handler(req, res) {
     </filter>
   </defs>
 
-  <rect width="920" height="280" rx="26" fill="url(#bg)"/>
-  <rect width="920" height="280" rx="26" fill="url(#glow)"/>
+  <rect width="920" height="310" rx="26" fill="url(#bg)"/>
+  <rect width="920" height="310" rx="26" fill="url(#glow)"/>
 
-  <rect x="14" y="14" width="892" height="252" rx="22"
+  <rect x="14" y="14" width="892" height="282" rx="22"
         fill="rgba(10,12,10,0.65)"
         stroke="rgba(0,255,150,0.22)"
         stroke-width="2"
@@ -109,16 +109,16 @@ export default async function handler(req, res) {
   ${miniBox(332, 118, "Following", following)}
   ${miniBox(622, 118, "Public Repos", publicRepos)}
 
-  <text x="60" y="205" font-size="15" font-weight="900" fill="#DFFFEF"
+  <text x="60" y="210" font-size="15" font-weight="900" fill="#DFFFEF"
         font-family="system-ui,Segoe UI,Roboto,Arial">GitHub Stats</text>
 
-  ${rowText(60, 230, "Total Stars Earned", totalStars)}
-  ${rowText(60, 255, "Total PRs", totalPRs)}
-  ${rowText(360, 230, "Total Issues", totalIssues)}
-  ${rowText(360, 255, "Merged PRs", mergedPRs)}
+  ${rowText(60, 236, "Total Stars Earned", totalStars)}
+  ${rowText(60, 262, "Total PRs", totalPRs)}
+  ${rowText(360, 236, "Total Issues", totalIssues)}
+  ${rowText(360, 262, "Merged PRs", mergedPRs)}
 
   <!-- Grade ring -->
-  <g transform="translate(745,175)">
+  <g transform="translate(745,185)">
     <circle cx="80" cy="40" r="54" stroke="rgba(0,255,150,0.14)" stroke-width="12" fill="none"/>
     <circle cx="80" cy="40" r="54" stroke="#00FF96" stroke-width="12" fill="none"
       stroke-linecap="round"
@@ -130,14 +130,17 @@ export default async function handler(req, res) {
           fill="rgba(210,255,232,0.60)" font-family="system-ui,Segoe UI,Roboto,Arial">Grade</text>
   </g>
 
-  <text x="460" y="268" text-anchor="middle" font-size="12" font-weight="700"
+  <text x="460" y="292" text-anchor="middle" font-size="12" font-weight="700"
         fill="rgba(210,255,232,0.50)" font-family="system-ui,Segoe UI,Roboto,Arial">
     Auto-updated • GitHub API • Vercel
   </text>
 </svg>`.trim();
 
     res.setHeader("Content-Type", "image/svg+xml");
-    res.setHeader("Cache-Control", "public, max-age=1800, s-maxage=1800, stale-while-revalidate=3600");
+    res.setHeader(
+      "Cache-Control",
+      "public, max-age=1800, s-maxage=1800, stale-while-revalidate=3600"
+    );
     res.status(200).send(svg);
   } catch (e) {
     res.setHeader("Content-Type", "image/svg+xml");
@@ -186,7 +189,7 @@ function calcDash(grade) {
 function errorSVG(msg) {
   const safe = escapeXML(msg);
   return `
-<svg xmlns="http://www.w3.org/2000/svg" width="920" height="280">
+<svg xmlns="http://www.w3.org/2000/svg" width="920" height="310">
   <rect width="100%" height="100%" rx="26" fill="#050705"/>
   <text x="50%" y="50%" text-anchor="middle" fill="#00ff96"
     font-family="system-ui,Segoe UI,Roboto,Arial" font-weight="900" font-size="20">${safe}</text>
