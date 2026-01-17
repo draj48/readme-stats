@@ -6,9 +6,10 @@
     "build": "next build",
     "start": "next start"
   },
+
   "dependencies": {
-    "next": "latest",
-    "react": "latest",
-    "react-dom": "latest"
-  }
+  "next": "latest",
+  "react": "latest",
+  "react-dom": "latest",
+  "sharp": "^0.33.0"
 }
