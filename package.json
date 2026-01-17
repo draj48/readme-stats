@@ -12,4 +12,5 @@
   "react": "latest",
   "react-dom": "latest",
   "sharp": "^0.33.0"
+ }
 }
