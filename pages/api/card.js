@@ -63,6 +63,7 @@ export default async function handler(req, res) {
       query: `
         query($login:String!) {
           user(login:$login) {
+            createdAt
             contributionsCollection {
               contributionCalendar {
                 totalContributions
@@ -74,7 +75,6 @@ export default async function handler(req, res) {
                 }
               }
             }
-            createdAt
           }
         }
       `,
@@ -91,8 +91,8 @@ export default async function handler(req, res) {
     });
 
     const gql = await gqlRes.json();
-    const cal =
-      gql?.data?.user?.contributionsCollection?.contributionCalendar;
+    const gqlUser = gql?.data?.user;
+    const cal = gqlUser?.contributionsCollection?.contributionCalendar;
 
     if (!cal) {
       res.setHeader("Content-Type", "image/svg+xml");
@@ -100,8 +100,7 @@ export default async function handler(req, res) {
       return;
     }
 
-    const createdAt = gql?.data?.user?.createdAt || user.created_at || null;
-    const startDateLabel = createdAt ? formatDate(createdAt) : "—";
+    const startDateLabel = gqlUser?.createdAt ? formatDate(gqlUser.createdAt) : "—";
 
     const days = [];
     for (const w of cal.weeks || []) {
@@ -112,15 +111,12 @@ export default async function handler(req, res) {
     days.sort((a, b) => a.date.localeCompare(b.date));
 
     const totalContributions = cal.totalContributions ?? 0;
-
     const streakInfo = computeStreaks(days);
 
-    // current streak label dates
     const currentStreak = streakInfo.current.length;
     const currentStart = streakInfo.current.start ? formatDate(streakInfo.current.start) : "—";
     const currentEnd = streakInfo.current.end ? formatDate(streakInfo.current.end) : "—";
 
-    // longest streak label dates
     const longestStreak = streakInfo.longest.length;
     const longestStart = streakInfo.longest.start ? formatDate(streakInfo.longest.start) : "—";
     const longestEnd = streakInfo.longest.end ? formatDate(streakInfo.longest.end) : "—";
@@ -132,9 +128,9 @@ export default async function handler(req, res) {
     else if (score > 2000) grade = "A";
     else if (score > 800) grade = "B";
 
-    // ---------- SVG: streak card layout ----------
-    // Height fixed so footer never cuts
-    const W = 920, H = 320;
+    // ---------- SVG sizes ----------
+    const W = 920;
+    const H = 380; // ✅ bigger height so nothing cuts
 
     const svg = `
 <svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
@@ -157,20 +153,19 @@ export default async function handler(req, res) {
   <rect width="${W}" height="${H}" rx="26" fill="url(#bg)"/>
   <rect width="${W}" height="${H}" rx="26" fill="url(#glow)"/>
 
-  <!-- outer -->
+  <!-- main border -->
   <rect x="14" y="14" width="${W - 28}" height="${H - 28}" rx="22"
         fill="rgba(10,12,10,0.68)"
         stroke="rgba(0,255,150,0.22)"
         stroke-width="2"
         filter="url(#shadow)"/>
 
-  <!-- ===== TOP: STREAK CARD (3 blocks) ===== -->
+  <!-- ===== TOP: STREAK CARD ===== -->
   <g>
     <rect x="34" y="28" width="${W - 68}" height="122" rx="18"
           fill="rgba(0,0,0,0.33)"
           stroke="rgba(255,255,255,0.06)"/>
 
-    <!-- separators -->
     <line x1="${W/3}" y1="42" x2="${W/3}" y2="136" stroke="rgba(255,255,255,0.09)"/>
     <line x1="${(W/3)*2}" y1="42" x2="${(W/3)*2}" y2="136" stroke="rgba(255,255,255,0.09)"/>
 
@@ -188,7 +183,8 @@ export default async function handler(req, res) {
     <g transform="translate(${(W/2)-70},52)">
       <circle cx="70" cy="36" r="32" stroke="rgba(113,255,168,0.18)" stroke-width="10" fill="none"/>
       <circle cx="70" cy="36" r="32" stroke="#71ffa8" stroke-width="10" fill="none"
-              stroke-linecap="round" stroke-dasharray="${Math.min(210, 30 + currentStreak*12)} 999"
+              stroke-linecap="round"
+              stroke-dasharray="${Math.min(210, 30 + currentStreak*12)} 999"
               transform="rotate(-90 70 36)"/>
       <text x="70" y="44" text-anchor="middle" font-size="22" font-weight="1000"
             fill="#E9FFF3" font-family="system-ui,Segoe UI,Roboto,Arial">${currentStreak}</text>
@@ -211,9 +207,10 @@ export default async function handler(req, res) {
     </text>
   </g>
 
-  <!-- ===== BOTTOM: YOUR CUSTOM CARD ===== -->
+  <!-- ===== BOTTOM: PROFILE CARD ===== -->
+
   <!-- Avatar -->
-  <g transform="translate(42,182)">
+  <g transform="translate(42,222)">
     <clipPath id="clip">
       <rect x="0" y="0" width="56" height="56" rx="14"/>
     </clipPath>
@@ -223,27 +220,27 @@ export default async function handler(req, res) {
   </g>
 
   <!-- Name -->
-  <text x="114" y="208" font-size="20" font-weight="1000" fill="#E9FFF3"
+  <text x="114" y="248" font-size="20" font-weight="1000" fill="#E9FFF3"
         font-family="system-ui,Segoe UI,Roboto,Arial">${name}</text>
-  <text x="114" y="228" font-size="12" font-weight="800" fill="rgba(210,255,232,0.65)"
+  <text x="114" y="268" font-size="12" font-weight="800" fill="rgba(210,255,232,0.65)"
         font-family="system-ui,Segoe UI,Roboto,Arial">@${login}</text>
 
   <!-- Mini cards -->
-  ${miniBox(42, 244, "Followers", followers, 260, 56)}
-  ${miniBox(330, 244, "Following", following, 260, 56)}
-  ${miniBox(618, 244, "Public Repos", publicRepos, 260, 56)}
+  ${miniBox(42, 284, "Followers", followers, 260, 56)}
+  ${miniBox(330, 284, "Following", following, 260, 56)}
+  ${miniBox(618, 284, "Public Repos", publicRepos, 260, 56)}
 
   <!-- Stats -->
-  <text x="60" y="286" font-size="13" font-weight="1000" fill="#DFFFEF"
+  <text x="60" y="342" font-size="13" font-weight="1000" fill="#DFFFEF"
         font-family="system-ui,Segoe UI,Roboto,Arial">GitHub Stats</text>
 
-  ${rowText(60, 306, "Stars", totalStars)}
-  ${rowText(190, 306, "PRs", totalPRs)}
-  ${rowText(310, 306, "Issues", totalIssues)}
-  ${rowText(455, 306, "Merged", mergedPRs)}
+  ${rowText(60, 362, "Stars", totalStars)}
+  ${rowText(190, 362, "PRs", totalPRs)}
+  ${rowText(310, 362, "Issues", totalIssues)}
+  ${rowText(455, 362, "Merged", mergedPRs)}
 
   <!-- Grade ring -->
-  <g transform="translate(748,258)">
+  <g transform="translate(748,308)">
     <circle cx="80" cy="32" r="42" stroke="rgba(0,255,150,0.14)" stroke-width="10" fill="none"/>
     <circle cx="80" cy="32" r="42" stroke="#00FF96" stroke-width="10" fill="none"
       stroke-linecap="round"
@@ -296,7 +293,6 @@ function rowText(x, y, label, value) {
   </g>`;
 }
 
-// grade ring fill
 function calcDash(grade, r) {
   const total = Math.floor(2 * Math.PI * r);
   const pct = grade === "S" ? 0.95 : grade === "A" ? 0.80 : grade === "B" ? 0.60 : 0.40;
@@ -306,10 +302,10 @@ function calcDash(grade, r) {
 function errorSVG(msg) {
   const safe = escapeXML(msg);
   return `
-<svg xmlns="http://www.w3.org/2000/svg" width="920" height="320">
-  <rect width="100%" height="100%" rx="26" fill="#050705"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="920" height="180">
+  <rect width="100%" height="100%" rx="22" fill="#050705"/>
   <text x="50%" y="50%" text-anchor="middle" fill="#00ff96"
-    font-family="system-ui,Segoe UI,Roboto,Arial" font-weight="900" font-size="20">${safe}</text>
+    font-family="system-ui,Segoe UI,Roboto,Arial" font-weight="900" font-size="18">${safe}</text>
 </svg>`.trim();
 }
 
@@ -322,7 +318,6 @@ async function fetchAsBase64(url) {
 }
 
 function formatDate(dateStr) {
-  // dateStr like "2020-10-10" or ISO
   const d = new Date(dateStr);
   const m = d.toLocaleString("en-US", { month: "short" });
   const day = String(d.getDate()).padStart(2, "0");
@@ -331,31 +326,24 @@ function formatDate(dateStr) {
 }
 
 function computeStreaks(days) {
-  // days: [{date:'YYYY-MM-DD', count}]
   const isContrib = (d) => d && d.count > 0;
 
-  // CURRENT streak (ending today or last non-zero consecutive day)
-  let currentLen = 0;
-  let curStart = null;
-  let curEnd = null;
-
-  // start from last day in list (calendar includes future days sometimes)
+  // current streak
   let i = days.length - 1;
-  // skip trailing zeros (today might be 0 early)
   while (i >= 0 && !isContrib(days[i])) i--;
+  let curLen = 0, curStart = null, curEnd = null;
   if (i >= 0) {
     curEnd = days[i].date;
     while (i >= 0 && isContrib(days[i])) {
       curStart = days[i].date;
-      currentLen++;
+      curLen++;
       i--;
     }
   }
 
-  // LONGEST streak
+  // longest streak
   let bestLen = 0, bestStart = null, bestEnd = null;
   let runLen = 0, runStart = null;
-
   for (let j = 0; j < days.length; j++) {
     if (isContrib(days[j])) {
       if (runLen === 0) runStart = days[j].date;
@@ -372,7 +360,7 @@ function computeStreaks(days) {
   }
 
   return {
-    current: { length: currentLen, start: curStart, end: curEnd },
+    current: { length: curLen, start: curStart, end: curEnd },
     longest: { length: bestLen, start: bestStart, end: bestEnd },
   };
 }
