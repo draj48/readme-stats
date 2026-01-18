@@ -136,6 +136,12 @@ export default async function handler(req, res) {
     const PROFILE_Y = 28;
     const STREAK_Y = 248;
 
+    // ✅ NEW: Stats box moved UP into empty area
+    const STATS_BOX_X = 260;
+    const STATS_BOX_Y = PROFILE_Y + 20; // upar shift
+    const STATS_BOX_W = 610;
+    const STATS_BOX_H = 72;
+
     const svg = `
 <svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
   <defs>
@@ -193,28 +199,28 @@ export default async function handler(req, res) {
         fill="rgba(210,255,232,0.65)"
         font-family="system-ui,Segoe UI,Roboto,Arial">@${login}</text>
 
-  <!-- Mini cards -->
-  ${miniBox(52, PROFILE_Y + 104, "Followers", followers, 260, 64)}
-  ${miniBox(340, PROFILE_Y + 104, "Following", following, 260, 64)}
-  ${miniBox(628, PROFILE_Y + 104, "Public Repos", publicRepos, 260, 64)}
-
-  <!-- ✅ GitHub Stats BOX (NEW) -->
+  <!-- ✅ GitHub Stats BOX moved UP -->
   <g filter="url(#softShadow)">
-    <rect x="52" y="${PROFILE_Y + 168}" width="580" height="72" rx="16"
+    <rect x="${STATS_BOX_X}" y="${STATS_BOX_Y}" width="${STATS_BOX_W}" height="${STATS_BOX_H}" rx="16"
           fill="rgba(0,0,0,0.42)"
           stroke="rgba(0,255,150,0.18)" stroke-width="1"/>
-    <rect x="52" y="${PROFILE_Y + 168}" width="580" height="72" rx="16"
+    <rect x="${STATS_BOX_X}" y="${STATS_BOX_Y}" width="${STATS_BOX_W}" height="${STATS_BOX_H}" rx="16"
           fill="rgba(255,255,255,0.03)"/>
   </g>
 
   <!-- Stats title -->
-  <text x="70" y="${PROFILE_Y + 192}" font-size="14" font-weight="1000" fill="#DFFFEF"
+  <text x="${STATS_BOX_X + 18}" y="${STATS_BOX_Y + 26}" font-size="14" font-weight="1000" fill="#DFFFEF"
         font-family="system-ui,Segoe UI,Roboto,Arial">GitHub Stats</text>
 
-  ${rowLine(70, PROFILE_Y + 214, "Total Stars Earned", totalStars)}
-  ${rowLine(70, PROFILE_Y + 236, "Total PRs", totalPRs)}
-  ${rowLine(370, PROFILE_Y + 214, "Total Issues", totalIssues)}
-  ${rowLine(370, PROFILE_Y + 236, "Merged PRs", mergedPRs)}
+  ${rowLine(STATS_BOX_X + 18, STATS_BOX_Y + 48, "Total Stars", totalStars)}
+  ${rowLine(STATS_BOX_X + 18, STATS_BOX_Y + 68, "Total PRs", totalPRs)}
+  ${rowLine(STATS_BOX_X + 320, STATS_BOX_Y + 48, "Total Issues", totalIssues)}
+  ${rowLine(STATS_BOX_X + 320, STATS_BOX_Y + 68, "Merged PRs", mergedPRs)}
+
+  <!-- Mini cards -->
+  ${miniBox(52, PROFILE_Y + 104, "Followers", followers, 260, 64)}
+  ${miniBox(340, PROFILE_Y + 104, "Following", following, 260, 64)}
+  ${miniBox(628, PROFILE_Y + 104, "Public Repos", publicRepos, 260, 64)}
 
   <!-- Grade ring -->
   <g transform="translate(748,${PROFILE_Y + 132})">
@@ -322,9 +328,9 @@ function miniBox(x, y, label, value, w = 256, h = 74) {
 function rowLine(x, y, label, value) {
   return `
   <g>
-    <text x="${x}" y="${y}" font-size="13" font-weight="900"
-          fill="rgba(210,255,232,0.72)" font-family="system-ui,Segoe UI,Roboto,Arial">${label}</text>
-    <text x="${x + 240}" y="${y}" font-size="14" font-weight="1000"
+    <text x="${x}" y="${y}" font-size="12" font-weight="900"
+          fill="rgba(210,255,232,0.70)" font-family="system-ui,Segoe UI,Roboto,Arial">${label}</text>
+    <text x="${x + 180}" y="${y}" font-size="13" font-weight="1000"
           fill="#E9FFF3" font-family="system-ui,Segoe UI,Roboto,Arial">${value}</text>
   </g>`;
 }
@@ -364,6 +370,7 @@ function formatDate(dateStr) {
 function computeStreaks(days) {
   const isContrib = (d) => d && d.count > 0;
 
+  // current streak
   let i = days.length - 1;
   while (i >= 0 && !isContrib(days[i])) i--;
   let curLen = 0,
@@ -378,6 +385,7 @@ function computeStreaks(days) {
     }
   }
 
+  // longest streak
   let bestLen = 0,
     bestStart = null,
     bestEnd = null;
