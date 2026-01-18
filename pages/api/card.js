@@ -3,14 +3,20 @@ export default async function handler(req, res) {
     const username = (req.query.user || "draj48").toString();
 
     const token = process.env.GITHUB_TOKEN;
-    const headers = {
+    if (!token) {
+      res.setHeader("Content-Type", "image/svg+xml");
+      res.status(200).send(errorSVG("Missing GITHUB_TOKEN in Vercel env vars"));
+      return;
+    }
+
+    const headersREST = {
       "User-Agent": "github-stats-card",
       Accept: "application/vnd.github+json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      Authorization: `Bearer ${token}`,
     };
 
-    // ---- Fetch user info ----
-    const userRes = await fetch(`https://api.github.com/users/${username}`, { headers });
+    // ---------- 1) REST: user data ----------
+    const userRes = await fetch(`https://api.github.com/users/${username}`, { headers: headersREST });
     const user = await userRes.json();
 
     if (!user || user.message) {
@@ -19,26 +25,30 @@ export default async function handler(req, res) {
       return;
     }
 
-    // ---- Embed avatar as base64 ----
     const avatarBase64 = await fetchAsBase64(user.avatar_url);
     const avatarDataUri = `data:image/png;base64,${avatarBase64}`;
 
-    // ---- Fetch repos for stars ----
-    const reposRes = await fetch(
-      `https://api.github.com/users/${username}/repos?per_page=100`,
-      { headers }
-    );
-    const repos = await reposRes.json();
+    const followers = user.followers ?? 0;
+    const following = user.following ?? 0;
+    const publicRepos = user.public_repos ?? 0;
 
+    const name = escapeXML((user.name || username).slice(0, 18));
+    const login = escapeXML(username);
+
+    // ---------- 2) REST: stars ----------
+    const reposRes = await fetch(`https://api.github.com/users/${username}/repos?per_page=100`, {
+      headers: headersREST,
+    });
+    const repos = await reposRes.json();
     const totalStars = Array.isArray(repos)
       ? repos.reduce((sum, r) => sum + (r.stargazers_count || 0), 0)
       : 0;
 
-    // ---- Search counts ----
+    // ---------- 3) REST: PRs/issues counts ----------
     const search = async (q) => {
       const r = await fetch(
         `https://api.github.com/search/issues?q=${encodeURIComponent(q)}&per_page=1`,
-        { headers }
+        { headers: headersREST }
       );
       const data = await r.json();
       return data?.total_count || 0;
@@ -48,30 +58,94 @@ export default async function handler(req, res) {
     const totalIssues = await search(`type:issue author:${username}`);
     const mergedPRs = await search(`type:pr author:${username} is:merged`);
 
-    const followers = user.followers ?? 0;
-    const following = user.following ?? 0;
-    const publicRepos = user.public_repos ?? 0;
+    // ---------- 4) GraphQL: contribution calendar (streak + dates) ----------
+    const graphqlQuery = {
+      query: `
+        query($login:String!) {
+          user(login:$login) {
+            contributionsCollection {
+              contributionCalendar {
+                totalContributions
+                weeks {
+                  contributionDays {
+                    date
+                    contributionCount
+                  }
+                }
+              }
+            }
+            createdAt
+          }
+        }
+      `,
+      variables: { login: username },
+    };
 
-    // ---- Grade ----
+    const gqlRes = await fetch("https://api.github.com/graphql", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(graphqlQuery),
+    });
+
+    const gql = await gqlRes.json();
+    const cal =
+      gql?.data?.user?.contributionsCollection?.contributionCalendar;
+
+    if (!cal) {
+      res.setHeader("Content-Type", "image/svg+xml");
+      res.status(200).send(errorSVG("GraphQL error: contribution calendar missing"));
+      return;
+    }
+
+    const createdAt = gql?.data?.user?.createdAt || user.created_at || null;
+    const startDateLabel = createdAt ? formatDate(createdAt) : "—";
+
+    const days = [];
+    for (const w of cal.weeks || []) {
+      for (const d of w.contributionDays || []) {
+        days.push({ date: d.date, count: d.contributionCount });
+      }
+    }
+    days.sort((a, b) => a.date.localeCompare(b.date));
+
+    const totalContributions = cal.totalContributions ?? 0;
+
+    const streakInfo = computeStreaks(days);
+
+    // current streak label dates
+    const currentStreak = streakInfo.current.length;
+    const currentStart = streakInfo.current.start ? formatDate(streakInfo.current.start) : "—";
+    const currentEnd = streakInfo.current.end ? formatDate(streakInfo.current.end) : "—";
+
+    // longest streak label dates
+    const longestStreak = streakInfo.longest.length;
+    const longestStart = streakInfo.longest.start ? formatDate(streakInfo.longest.start) : "—";
+    const longestEnd = streakInfo.longest.end ? formatDate(streakInfo.longest.end) : "—";
+
+    // ---------- grade ----------
     let grade = "C";
     const score = totalStars + totalPRs * 2 + mergedPRs * 3;
     if (score > 5000) grade = "S";
     else if (score > 2000) grade = "A";
     else if (score > 800) grade = "B";
 
-    const name = escapeXML((user.name || username).slice(0, 18));
-    const login = escapeXML(username);
+    // ---------- SVG: streak card layout ----------
+    // Height fixed so footer never cuts
+    const W = 920, H = 320;
 
     const svg = `
-<svg xmlns="http://www.w3.org/2000/svg" width="920" height="310" viewBox="0 0 920 310">
+<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0%" stop-color="#050705"/>
       <stop offset="100%" stop-color="#030503"/>
     </linearGradient>
 
-    <radialGradient id="glow" cx="20%" cy="15%" r="70%">
-      <stop offset="0%" stop-color="rgba(0,255,150,0.22)"/>
+    <radialGradient id="glow" cx="20%" cy="20%" r="80%">
+      <stop offset="0%" stop-color="rgba(0,255,150,0.20)"/>
       <stop offset="100%" stop-color="rgba(0,255,150,0)"/>
     </radialGradient>
 
@@ -80,67 +154,108 @@ export default async function handler(req, res) {
     </filter>
   </defs>
 
-  <rect width="920" height="310" rx="26" fill="url(#bg)"/>
-  <rect width="920" height="310" rx="26" fill="url(#glow)"/>
+  <rect width="${W}" height="${H}" rx="26" fill="url(#bg)"/>
+  <rect width="${W}" height="${H}" rx="26" fill="url(#glow)"/>
 
-  <rect x="14" y="14" width="892" height="282" rx="22"
-        fill="rgba(10,12,10,0.65)"
+  <!-- outer -->
+  <rect x="14" y="14" width="${W - 28}" height="${H - 28}" rx="22"
+        fill="rgba(10,12,10,0.68)"
         stroke="rgba(0,255,150,0.22)"
         stroke-width="2"
         filter="url(#shadow)"/>
 
+  <!-- ===== TOP: STREAK CARD (3 blocks) ===== -->
+  <g>
+    <rect x="34" y="28" width="${W - 68}" height="122" rx="18"
+          fill="rgba(0,0,0,0.33)"
+          stroke="rgba(255,255,255,0.06)"/>
+
+    <!-- separators -->
+    <line x1="${W/3}" y1="42" x2="${W/3}" y2="136" stroke="rgba(255,255,255,0.09)"/>
+    <line x1="${(W/3)*2}" y1="42" x2="${(W/3)*2}" y2="136" stroke="rgba(255,255,255,0.09)"/>
+
+    <!-- LEFT -->
+    <text x="120" y="78" text-anchor="middle" font-size="34" font-weight="1000"
+          fill="#71ffa8" font-family="system-ui,Segoe UI,Roboto,Arial">${totalContributions}</text>
+    <text x="120" y="102" text-anchor="middle" font-size="13" font-weight="900"
+          fill="#bfffe0" font-family="system-ui,Segoe UI,Roboto,Arial">Total Contributions</text>
+    <text x="120" y="124" text-anchor="middle" font-size="11" font-weight="800"
+          fill="rgba(210,255,232,0.62)" font-family="system-ui,Segoe UI,Roboto,Arial">
+      ${startDateLabel} - Present
+    </text>
+
+    <!-- MIDDLE ring -->
+    <g transform="translate(${(W/2)-70},52)">
+      <circle cx="70" cy="36" r="32" stroke="rgba(113,255,168,0.18)" stroke-width="10" fill="none"/>
+      <circle cx="70" cy="36" r="32" stroke="#71ffa8" stroke-width="10" fill="none"
+              stroke-linecap="round" stroke-dasharray="${Math.min(210, 30 + currentStreak*12)} 999"
+              transform="rotate(-90 70 36)"/>
+      <text x="70" y="44" text-anchor="middle" font-size="22" font-weight="1000"
+            fill="#E9FFF3" font-family="system-ui,Segoe UI,Roboto,Arial">${currentStreak}</text>
+    </g>
+    <text x="${W/2}" y="112" text-anchor="middle" font-size="13" font-weight="1000"
+          fill="#c8ffe7" font-family="system-ui,Segoe UI,Roboto,Arial">Current Streak</text>
+    <text x="${W/2}" y="132" text-anchor="middle" font-size="11" font-weight="800"
+          fill="rgba(210,255,232,0.62)" font-family="system-ui,Segoe UI,Roboto,Arial">
+      ${currentStart} - ${currentEnd}
+    </text>
+
+    <!-- RIGHT -->
+    <text x="${W - 120}" y="78" text-anchor="middle" font-size="34" font-weight="1000"
+          fill="#71ffa8" font-family="system-ui,Segoe UI,Roboto,Arial">${longestStreak}</text>
+    <text x="${W - 120}" y="102" text-anchor="middle" font-size="13" font-weight="900"
+          fill="#bfffe0" font-family="system-ui,Segoe UI,Roboto,Arial">Longest Streak</text>
+    <text x="${W - 120}" y="124" text-anchor="middle" font-size="11" font-weight="800"
+          fill="rgba(210,255,232,0.62)" font-family="system-ui,Segoe UI,Roboto,Arial">
+      ${longestStart} - ${longestEnd}
+    </text>
+  </g>
+
+  <!-- ===== BOTTOM: YOUR CUSTOM CARD ===== -->
   <!-- Avatar -->
-  <g transform="translate(42,42)">
+  <g transform="translate(42,182)">
     <clipPath id="clip">
-      <rect x="0" y="0" width="62" height="62" rx="16"/>
+      <rect x="0" y="0" width="56" height="56" rx="14"/>
     </clipPath>
-    <rect x="-3" y="-3" width="68" height="68" rx="18"
+    <rect x="-3" y="-3" width="62" height="62" rx="16"
           fill="rgba(0,255,150,0.10)" stroke="rgba(0,255,150,0.22)"/>
-    <image href="${avatarDataUri}" x="0" y="0" width="62" height="62" clip-path="url(#clip)"/>
+    <image href="${avatarDataUri}" x="0" y="0" width="56" height="56" clip-path="url(#clip)"/>
   </g>
 
   <!-- Name -->
-  <text x="120" y="66" font-size="22" font-weight="900" fill="#E9FFF3"
+  <text x="114" y="208" font-size="20" font-weight="1000" fill="#E9FFF3"
         font-family="system-ui,Segoe UI,Roboto,Arial">${name}</text>
-  <text x="120" y="88" font-size="13" font-weight="700" fill="rgba(210,255,232,0.65)"
+  <text x="114" y="228" font-size="12" font-weight="800" fill="rgba(210,255,232,0.65)"
         font-family="system-ui,Segoe UI,Roboto,Arial">@${login}</text>
 
-  ${miniBox(42, 118, "Followers", followers)}
-  ${miniBox(332, 118, "Following", following)}
-  ${miniBox(622, 118, "Public Repos", publicRepos)}
+  <!-- Mini cards -->
+  ${miniBox(42, 244, "Followers", followers, 260, 56)}
+  ${miniBox(330, 244, "Following", following, 260, 56)}
+  ${miniBox(618, 244, "Public Repos", publicRepos, 260, 56)}
 
-  <text x="60" y="210" font-size="15" font-weight="900" fill="#DFFFEF"
+  <!-- Stats -->
+  <text x="60" y="286" font-size="13" font-weight="1000" fill="#DFFFEF"
         font-family="system-ui,Segoe UI,Roboto,Arial">GitHub Stats</text>
 
-  ${rowText(60, 236, "Total Stars Earned", totalStars)}
-  ${rowText(60, 262, "Total PRs", totalPRs)}
-  ${rowText(360, 236, "Total Issues", totalIssues)}
-  ${rowText(360, 262, "Merged PRs", mergedPRs)}
+  ${rowText(60, 306, "Stars", totalStars)}
+  ${rowText(190, 306, "PRs", totalPRs)}
+  ${rowText(310, 306, "Issues", totalIssues)}
+  ${rowText(455, 306, "Merged", mergedPRs)}
 
   <!-- Grade ring -->
-  <g transform="translate(745,185)">
-    <circle cx="80" cy="40" r="54" stroke="rgba(0,255,150,0.14)" stroke-width="12" fill="none"/>
-    <circle cx="80" cy="40" r="54" stroke="#00FF96" stroke-width="12" fill="none"
+  <g transform="translate(748,258)">
+    <circle cx="80" cy="32" r="42" stroke="rgba(0,255,150,0.14)" stroke-width="10" fill="none"/>
+    <circle cx="80" cy="32" r="42" stroke="#00FF96" stroke-width="10" fill="none"
       stroke-linecap="round"
-      stroke-dasharray="${calcDash(grade)} 999"
-      transform="rotate(-90 80 40)"/>
-    <text x="80" y="48" text-anchor="middle" font-size="40" font-weight="1000" fill="#E9FFF3"
+      stroke-dasharray="${calcDash(grade, 42)} 999"
+      transform="rotate(-90 80 32)"/>
+    <text x="80" y="40" text-anchor="middle" font-size="30" font-weight="1000" fill="#E9FFF3"
           font-family="system-ui,Segoe UI,Roboto,Arial">${grade}</text>
-    <text x="80" y="70" text-anchor="middle" font-size="12" font-weight="900"
-          fill="rgba(210,255,232,0.60)" font-family="system-ui,Segoe UI,Roboto,Arial">Grade</text>
   </g>
-
-  <text x="460" y="292" text-anchor="middle" font-size="12" font-weight="700"
-        fill="rgba(210,255,232,0.50)" font-family="system-ui,Segoe UI,Roboto,Arial">
-    Auto-updated • GitHub API • Vercel
-  </text>
 </svg>`.trim();
 
     res.setHeader("Content-Type", "image/svg+xml");
-    res.setHeader(
-      "Cache-Control",
-      "public, max-age=1800, s-maxage=1800, stale-while-revalidate=3600"
-    );
+    res.setHeader("Cache-Control", "public, max-age=1800, s-maxage=1800, stale-while-revalidate=3600");
     res.status(200).send(svg);
   } catch (e) {
     res.setHeader("Content-Type", "image/svg+xml");
@@ -148,6 +263,7 @@ export default async function handler(req, res) {
   }
 }
 
+/* ---------- helpers ---------- */
 function escapeXML(str) {
   return String(str)
     .replaceAll("&", "&amp;")
@@ -157,15 +273,15 @@ function escapeXML(str) {
     .replaceAll("'", "&apos;");
 }
 
-function miniBox(x, y, label, value) {
+function miniBox(x, y, label, value, w = 256, h = 74) {
   return `
   <g>
-    <rect x="${x}" y="${y}" width="256" height="74" rx="16"
+    <rect x="${x}" y="${y}" width="${w}" height="${h}" rx="16"
           fill="rgba(0,0,0,0.35)"
           stroke="rgba(255,255,255,0.06)"/>
-    <text x="${x + 18}" y="${y + 28}" font-size="12" font-weight="800"
+    <text x="${x + 18}" y="${y + 22}" font-size="11" font-weight="900"
           fill="rgba(210,255,232,0.60)" font-family="system-ui,Segoe UI,Roboto,Arial">${label}</text>
-    <text x="${x + 18}" y="${y + 56}" font-size="26" font-weight="1000"
+    <text x="${x + 18}" y="${y + 46}" font-size="22" font-weight="1000"
           fill="#00FF96" font-family="system-ui,Segoe UI,Roboto,Arial">${value}</text>
   </g>`;
 }
@@ -173,15 +289,16 @@ function miniBox(x, y, label, value) {
 function rowText(x, y, label, value) {
   return `
   <g>
-    <text x="${x}" y="${y}" font-size="13" font-weight="800"
+    <text x="${x}" y="${y}" font-size="12" font-weight="1000"
           fill="rgba(210,255,232,0.72)" font-family="system-ui,Segoe UI,Roboto,Arial">${label}</text>
-    <text x="${x + 240}" y="${y}" font-size="14" font-weight="1000"
+    <text x="${x + 55}" y="${y}" font-size="12" font-weight="1000"
           fill="#E9FFF3" font-family="system-ui,Segoe UI,Roboto,Arial">${value}</text>
   </g>`;
 }
 
-function calcDash(grade) {
-  const total = 339;
+// grade ring fill
+function calcDash(grade, r) {
+  const total = Math.floor(2 * Math.PI * r);
   const pct = grade === "S" ? 0.95 : grade === "A" ? 0.80 : grade === "B" ? 0.60 : 0.40;
   return Math.floor(total * pct);
 }
@@ -189,7 +306,7 @@ function calcDash(grade) {
 function errorSVG(msg) {
   const safe = escapeXML(msg);
   return `
-<svg xmlns="http://www.w3.org/2000/svg" width="920" height="310">
+<svg xmlns="http://www.w3.org/2000/svg" width="920" height="320">
   <rect width="100%" height="100%" rx="26" fill="#050705"/>
   <text x="50%" y="50%" text-anchor="middle" fill="#00ff96"
     font-family="system-ui,Segoe UI,Roboto,Arial" font-weight="900" font-size="20">${safe}</text>
@@ -204,4 +321,58 @@ async function fetchAsBase64(url) {
   return Buffer.from(binary, "binary").toString("base64");
 }
 
+function formatDate(dateStr) {
+  // dateStr like "2020-10-10" or ISO
+  const d = new Date(dateStr);
+  const m = d.toLocaleString("en-US", { month: "short" });
+  const day = String(d.getDate()).padStart(2, "0");
+  const y = d.getFullYear();
+  return `${m} ${day}, ${y}`;
+}
 
+function computeStreaks(days) {
+  // days: [{date:'YYYY-MM-DD', count}]
+  const isContrib = (d) => d && d.count > 0;
+
+  // CURRENT streak (ending today or last non-zero consecutive day)
+  let currentLen = 0;
+  let curStart = null;
+  let curEnd = null;
+
+  // start from last day in list (calendar includes future days sometimes)
+  let i = days.length - 1;
+  // skip trailing zeros (today might be 0 early)
+  while (i >= 0 && !isContrib(days[i])) i--;
+  if (i >= 0) {
+    curEnd = days[i].date;
+    while (i >= 0 && isContrib(days[i])) {
+      curStart = days[i].date;
+      currentLen++;
+      i--;
+    }
+  }
+
+  // LONGEST streak
+  let bestLen = 0, bestStart = null, bestEnd = null;
+  let runLen = 0, runStart = null;
+
+  for (let j = 0; j < days.length; j++) {
+    if (isContrib(days[j])) {
+      if (runLen === 0) runStart = days[j].date;
+      runLen++;
+      if (runLen > bestLen) {
+        bestLen = runLen;
+        bestStart = runStart;
+        bestEnd = days[j].date;
+      }
+    } else {
+      runLen = 0;
+      runStart = null;
+    }
+  }
+
+  return {
+    current: { length: currentLen, start: curStart, end: curEnd },
+    longest: { length: bestLen, start: bestStart, end: bestEnd },
+  };
+}
