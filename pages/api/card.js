@@ -136,11 +136,16 @@ export default async function handler(req, res) {
     const PROFILE_Y = 28;
     const STREAK_Y = 248;
 
-    // ✅ NEW: Stats box moved UP into empty area
+    // ✅ STATS BOX (same place)
     const STATS_BOX_X = 260;
-    const STATS_BOX_Y = PROFILE_Y + 20; // upar shift
+    const STATS_BOX_Y = PROFILE_Y + 20;
     const STATS_BOX_W = 610;
     const STATS_BOX_H = 72;
+
+    // ✅ NEW: Center aligned text inside box
+    // box padding: top space 16px
+    const ROW1_Y = STATS_BOX_Y + 30;
+    const ROW2_Y = STATS_BOX_Y + 54;
 
     const svg = `
 <svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
@@ -199,7 +204,7 @@ export default async function handler(req, res) {
         fill="rgba(210,255,232,0.65)"
         font-family="system-ui,Segoe UI,Roboto,Arial">@${login}</text>
 
-  <!-- ✅ GitHub Stats BOX moved UP -->
+  <!-- ✅ Stats Box (NO heading text) -->
   <g filter="url(#softShadow)">
     <rect x="${STATS_BOX_X}" y="${STATS_BOX_Y}" width="${STATS_BOX_W}" height="${STATS_BOX_H}" rx="16"
           fill="rgba(0,0,0,0.42)"
@@ -208,14 +213,11 @@ export default async function handler(req, res) {
           fill="rgba(255,255,255,0.03)"/>
   </g>
 
-  <!-- Stats title -->
-  <text x="${STATS_BOX_X + 18}" y="${STATS_BOX_Y + 26}" font-size="14" font-weight="1000" fill="#DFFFEF"
-        font-family="system-ui,Segoe UI,Roboto,Arial">GitHub Stats</text>
-
-  ${rowLine(STATS_BOX_X + 18, STATS_BOX_Y + 48, "Total Stars", totalStars)}
-  ${rowLine(STATS_BOX_X + 18, STATS_BOX_Y + 68, "Total PRs", totalPRs)}
-  ${rowLine(STATS_BOX_X + 320, STATS_BOX_Y + 48, "Total Issues", totalIssues)}
-  ${rowLine(STATS_BOX_X + 320, STATS_BOX_Y + 68, "Merged PRs", mergedPRs)}
+  <!-- ✅ Centered rows -->
+  ${rowLineTight(STATS_BOX_X + 22, ROW1_Y, "Total Stars", totalStars)}
+  ${rowLineTight(STATS_BOX_X + 22, ROW2_Y, "Total PRs", totalPRs)}
+  ${rowLineTight(STATS_BOX_X + 340, ROW1_Y, "Total Issues", totalIssues)}
+  ${rowLineTight(STATS_BOX_X + 340, ROW2_Y, "Merged PRs", mergedPRs)}
 
   <!-- Mini cards -->
   ${miniBox(52, PROFILE_Y + 104, "Followers", followers, 260, 64)}
@@ -325,12 +327,13 @@ function miniBox(x, y, label, value, w = 256, h = 74) {
   </g>`;
 }
 
-function rowLine(x, y, label, value) {
+// ✅ tighter line for stats box
+function rowLineTight(x, y, label, value) {
   return `
   <g>
     <text x="${x}" y="${y}" font-size="12" font-weight="900"
-          fill="rgba(210,255,232,0.70)" font-family="system-ui,Segoe UI,Roboto,Arial">${label}</text>
-    <text x="${x + 180}" y="${y}" font-size="13" font-weight="1000"
+          fill="rgba(210,255,232,0.75)" font-family="system-ui,Segoe UI,Roboto,Arial">${label}</text>
+    <text x="${x + 190}" y="${y}" font-size="13" font-weight="1000"
           fill="#E9FFF3" font-family="system-ui,Segoe UI,Roboto,Arial">${value}</text>
   </g>`;
 }
@@ -370,7 +373,6 @@ function formatDate(dateStr) {
 function computeStreaks(days) {
   const isContrib = (d) => d && d.count > 0;
 
-  // current streak
   let i = days.length - 1;
   while (i >= 0 && !isContrib(days[i])) i--;
   let curLen = 0,
@@ -385,7 +387,6 @@ function computeStreaks(days) {
     }
   }
 
-  // longest streak
   let bestLen = 0,
     bestStart = null,
     bestEnd = null;
