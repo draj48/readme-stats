@@ -130,11 +130,11 @@ export default async function handler(req, res) {
 
     // ---------- SVG sizes ----------
     const W = 920;
-    const H = 440; // same height, only sections swapped
+    const H = 440;
 
     // Layout Y constants
-    const PROFILE_Y = 28;      // profile section start
-    const STREAK_Y = 248;      // streak section start
+    const PROFILE_Y = 28;
+    const STREAK_Y = 248;
 
     const svg = `
 <svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
@@ -152,6 +152,10 @@ export default async function handler(req, res) {
     <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
       <feDropShadow dx="0" dy="18" stdDeviation="18" flood-color="rgba(0,0,0,0.55)"/>
     </filter>
+
+    <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="10" stdDeviation="10" flood-color="rgba(0,0,0,0.38)"/>
+    </filter>
   </defs>
 
   <rect width="${W}" height="${H}" rx="26" fill="url(#bg)"/>
@@ -165,10 +169,9 @@ export default async function handler(req, res) {
         filter="url(#shadow)"/>
 
   <!-- ========================= -->
-  <!--  TOP (2): PROFILE CARD ✅  -->
+  <!--  TOP: PROFILE CARD ✅      -->
   <!-- ========================= -->
 
-  <!-- Profile section background -->
   <rect x="34" y="${PROFILE_Y}" width="${W - 68}" height="200" rx="18"
         fill="rgba(0,0,0,0.33)"
         stroke="rgba(255,255,255,0.06)"/>
@@ -195,14 +198,23 @@ export default async function handler(req, res) {
   ${miniBox(340, PROFILE_Y + 104, "Following", following, 260, 64)}
   ${miniBox(628, PROFILE_Y + 104, "Public Repos", publicRepos, 260, 64)}
 
-  <!-- Stats (clear) -->
-  <text x="70" y="${PROFILE_Y + 186}" font-size="14" font-weight="1000" fill="#DFFFEF"
+  <!-- ✅ GitHub Stats BOX (NEW) -->
+  <g filter="url(#softShadow)">
+    <rect x="52" y="${PROFILE_Y + 168}" width="580" height="72" rx="16"
+          fill="rgba(0,0,0,0.42)"
+          stroke="rgba(0,255,150,0.18)" stroke-width="1"/>
+    <rect x="52" y="${PROFILE_Y + 168}" width="580" height="72" rx="16"
+          fill="rgba(255,255,255,0.03)"/>
+  </g>
+
+  <!-- Stats title -->
+  <text x="70" y="${PROFILE_Y + 192}" font-size="14" font-weight="1000" fill="#DFFFEF"
         font-family="system-ui,Segoe UI,Roboto,Arial">GitHub Stats</text>
 
-  ${rowLine(70, PROFILE_Y + 210, "Total Stars Earned", totalStars)}
-  ${rowLine(70, PROFILE_Y + 232, "Total PRs", totalPRs)}
-  ${rowLine(370, PROFILE_Y + 210, "Total Issues", totalIssues)}
-  ${rowLine(370, PROFILE_Y + 232, "Merged PRs", mergedPRs)}
+  ${rowLine(70, PROFILE_Y + 214, "Total Stars Earned", totalStars)}
+  ${rowLine(70, PROFILE_Y + 236, "Total PRs", totalPRs)}
+  ${rowLine(370, PROFILE_Y + 214, "Total Issues", totalIssues)}
+  ${rowLine(370, PROFILE_Y + 236, "Merged PRs", mergedPRs)}
 
   <!-- Grade ring -->
   <g transform="translate(748,${PROFILE_Y + 132})">
@@ -218,7 +230,7 @@ export default async function handler(req, res) {
   </g>
 
   <!-- ========================= -->
-  <!--  BOTTOM (1): STREAK CARD ✅ -->
+  <!--  BOTTOM: STREAK CARD ✅     -->
   <!-- ========================= -->
 
   <rect x="34" y="${STREAK_Y}" width="${W - 68}" height="160" rx="18"
@@ -228,7 +240,7 @@ export default async function handler(req, res) {
   <line x1="${W/3}" y1="${STREAK_Y + 18}" x2="${W/3}" y2="${STREAK_Y + 142}" stroke="rgba(255,255,255,0.09)"/>
   <line x1="${(W/3)*2}" y1="${STREAK_Y + 18}" x2="${(W/3)*2}" y2="${STREAK_Y + 142}" stroke="rgba(255,255,255,0.09)"/>
 
-  <!-- LEFT: Total Contributions -->
+  <!-- LEFT -->
   <text x="120" y="${STREAK_Y + 66}" text-anchor="middle" font-size="38" font-weight="1000"
         fill="#71ffa8" font-family="system-ui,Segoe UI,Roboto,Arial">${totalContributions}</text>
   <text x="120" y="${STREAK_Y + 94}" text-anchor="middle" font-size="13" font-weight="900"
@@ -238,7 +250,7 @@ export default async function handler(req, res) {
     ${startDateLabel} - Present
   </text>
 
-  <!-- MIDDLE: Current streak ring -->
+  <!-- MIDDLE -->
   <g transform="translate(${(W/2)-70},${STREAK_Y + 30})">
     <circle cx="70" cy="44" r="36" stroke="rgba(113,255,168,0.18)" stroke-width="10" fill="none"/>
     <circle cx="70" cy="44" r="36" stroke="#71ffa8" stroke-width="10" fill="none"
@@ -255,7 +267,7 @@ export default async function handler(req, res) {
     ${currentStart} - ${currentEnd}
   </text>
 
-  <!-- RIGHT: Longest streak -->
+  <!-- RIGHT -->
   <text x="${W - 120}" y="${STREAK_Y + 66}" text-anchor="middle" font-size="38" font-weight="1000"
         fill="#71ffa8" font-family="system-ui,Segoe UI,Roboto,Arial">${longestStreak}</text>
   <text x="${W - 120}" y="${STREAK_Y + 94}" text-anchor="middle" font-size="13" font-weight="900"
@@ -352,7 +364,6 @@ function formatDate(dateStr) {
 function computeStreaks(days) {
   const isContrib = (d) => d && d.count > 0;
 
-  // current streak
   let i = days.length - 1;
   while (i >= 0 && !isContrib(days[i])) i--;
   let curLen = 0,
@@ -367,7 +378,6 @@ function computeStreaks(days) {
     }
   }
 
-  // longest streak
   let bestLen = 0,
     bestStart = null,
     bestEnd = null;
