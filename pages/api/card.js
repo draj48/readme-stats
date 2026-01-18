@@ -203,3 +203,5 @@ async function fetchAsBase64(url) {
   for (let i = 0; i < arr.length; i++) binary += String.fromCharCode(arr[i]);
   return Buffer.from(binary, "binary").toString("base64");
 }
+
+ok
