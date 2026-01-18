@@ -130,7 +130,7 @@ export default async function handler(req, res) {
 
     // ---------- SVG sizes ----------
     const W = 920;
-    const H = 380; // ✅ bigger height so nothing cuts
+    const H = 440; // ✅ bigger card
 
     const svg = `
 <svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
@@ -162,46 +162,46 @@ export default async function handler(req, res) {
 
   <!-- ===== TOP: STREAK CARD ===== -->
   <g>
-    <rect x="34" y="28" width="${W - 68}" height="122" rx="18"
+    <rect x="34" y="28" width="${W - 68}" height="132" rx="18"
           fill="rgba(0,0,0,0.33)"
           stroke="rgba(255,255,255,0.06)"/>
 
-    <line x1="${W/3}" y1="42" x2="${W/3}" y2="136" stroke="rgba(255,255,255,0.09)"/>
-    <line x1="${(W/3)*2}" y1="42" x2="${(W/3)*2}" y2="136" stroke="rgba(255,255,255,0.09)"/>
+    <line x1="${W/3}" y1="44" x2="${W/3}" y2="148" stroke="rgba(255,255,255,0.09)"/>
+    <line x1="${(W/3)*2}" y1="44" x2="${(W/3)*2}" y2="148" stroke="rgba(255,255,255,0.09)"/>
 
     <!-- LEFT -->
-    <text x="120" y="78" text-anchor="middle" font-size="34" font-weight="1000"
+    <text x="120" y="82" text-anchor="middle" font-size="36" font-weight="1000"
           fill="#71ffa8" font-family="system-ui,Segoe UI,Roboto,Arial">${totalContributions}</text>
-    <text x="120" y="102" text-anchor="middle" font-size="13" font-weight="900"
+    <text x="120" y="110" text-anchor="middle" font-size="13" font-weight="900"
           fill="#bfffe0" font-family="system-ui,Segoe UI,Roboto,Arial">Total Contributions</text>
-    <text x="120" y="124" text-anchor="middle" font-size="11" font-weight="800"
+    <text x="120" y="134" text-anchor="middle" font-size="11" font-weight="800"
           fill="rgba(210,255,232,0.62)" font-family="system-ui,Segoe UI,Roboto,Arial">
       ${startDateLabel} - Present
     </text>
 
     <!-- MIDDLE ring -->
-    <g transform="translate(${(W/2)-70},52)">
-      <circle cx="70" cy="36" r="32" stroke="rgba(113,255,168,0.18)" stroke-width="10" fill="none"/>
-      <circle cx="70" cy="36" r="32" stroke="#71ffa8" stroke-width="10" fill="none"
+    <g transform="translate(${(W/2)-70},54)">
+      <circle cx="70" cy="40" r="34" stroke="rgba(113,255,168,0.18)" stroke-width="10" fill="none"/>
+      <circle cx="70" cy="40" r="34" stroke="#71ffa8" stroke-width="10" fill="none"
               stroke-linecap="round"
-              stroke-dasharray="${Math.min(210, 30 + currentStreak*12)} 999"
-              transform="rotate(-90 70 36)"/>
-      <text x="70" y="44" text-anchor="middle" font-size="22" font-weight="1000"
+              stroke-dasharray="${Math.min(220, 30 + currentStreak*12)} 999"
+              transform="rotate(-90 70 40)"/>
+      <text x="70" y="48" text-anchor="middle" font-size="24" font-weight="1000"
             fill="#E9FFF3" font-family="system-ui,Segoe UI,Roboto,Arial">${currentStreak}</text>
     </g>
-    <text x="${W/2}" y="112" text-anchor="middle" font-size="13" font-weight="1000"
+    <text x="${W/2}" y="124" text-anchor="middle" font-size="13" font-weight="1000"
           fill="#c8ffe7" font-family="system-ui,Segoe UI,Roboto,Arial">Current Streak</text>
-    <text x="${W/2}" y="132" text-anchor="middle" font-size="11" font-weight="800"
+    <text x="${W/2}" y="146" text-anchor="middle" font-size="11" font-weight="800"
           fill="rgba(210,255,232,0.62)" font-family="system-ui,Segoe UI,Roboto,Arial">
       ${currentStart} - ${currentEnd}
     </text>
 
     <!-- RIGHT -->
-    <text x="${W - 120}" y="78" text-anchor="middle" font-size="34" font-weight="1000"
+    <text x="${W - 120}" y="82" text-anchor="middle" font-size="36" font-weight="1000"
           fill="#71ffa8" font-family="system-ui,Segoe UI,Roboto,Arial">${longestStreak}</text>
-    <text x="${W - 120}" y="102" text-anchor="middle" font-size="13" font-weight="900"
+    <text x="${W - 120}" y="110" text-anchor="middle" font-size="13" font-weight="900"
           fill="#bfffe0" font-family="system-ui,Segoe UI,Roboto,Arial">Longest Streak</text>
-    <text x="${W - 120}" y="124" text-anchor="middle" font-size="11" font-weight="800"
+    <text x="${W - 120}" y="134" text-anchor="middle" font-size="11" font-weight="800"
           fill="rgba(210,255,232,0.62)" font-family="system-ui,Segoe UI,Roboto,Arial">
       ${longestStart} - ${longestEnd}
     </text>
@@ -210,7 +210,7 @@ export default async function handler(req, res) {
   <!-- ===== BOTTOM: PROFILE CARD ===== -->
 
   <!-- Avatar -->
-  <g transform="translate(42,222)">
+  <g transform="translate(42,250)">
     <clipPath id="clip">
       <rect x="0" y="0" width="56" height="56" rx="14"/>
     </clipPath>
@@ -220,27 +220,27 @@ export default async function handler(req, res) {
   </g>
 
   <!-- Name -->
-  <text x="114" y="248" font-size="20" font-weight="1000" fill="#E9FFF3"
+  <text x="114" y="276" font-size="20" font-weight="1000" fill="#E9FFF3"
         font-family="system-ui,Segoe UI,Roboto,Arial">${name}</text>
-  <text x="114" y="268" font-size="12" font-weight="800" fill="rgba(210,255,232,0.65)"
+  <text x="114" y="296" font-size="12" font-weight="800" fill="rgba(210,255,232,0.65)"
         font-family="system-ui,Segoe UI,Roboto,Arial">@${login}</text>
 
   <!-- Mini cards -->
-  ${miniBox(42, 284, "Followers", followers, 260, 56)}
-  ${miniBox(330, 284, "Following", following, 260, 56)}
-  ${miniBox(618, 284, "Public Repos", publicRepos, 260, 56)}
+  ${miniBox(42, 312, "Followers", followers, 260, 60)}
+  ${miniBox(330, 312, "Following", following, 260, 60)}
+  ${miniBox(618, 312, "Public Repos", publicRepos, 260, 60)}
 
-  <!-- Stats -->
-  <text x="60" y="342" font-size="13" font-weight="1000" fill="#DFFFEF"
+  <!-- Stats (CLEAR) -->
+  <text x="60" y="392" font-size="14" font-weight="1000" fill="#DFFFEF"
         font-family="system-ui,Segoe UI,Roboto,Arial">GitHub Stats</text>
 
-  ${rowText(60, 362, "Stars", totalStars)}
-  ${rowText(190, 362, "PRs", totalPRs)}
-  ${rowText(310, 362, "Issues", totalIssues)}
-  ${rowText(455, 362, "Merged", mergedPRs)}
+  ${rowLine(60, 417, "Total Stars Earned", totalStars)}
+  ${rowLine(60, 438, "Total PRs", totalPRs)}
+  ${rowLine(360, 417, "Total Issues", totalIssues)}
+  ${rowLine(360, 438, "Merged PRs", mergedPRs)}
 
   <!-- Grade ring -->
-  <g transform="translate(748,308)">
+  <g transform="translate(748,350)">
     <circle cx="80" cy="32" r="42" stroke="rgba(0,255,150,0.14)" stroke-width="10" fill="none"/>
     <circle cx="80" cy="32" r="42" stroke="#00FF96" stroke-width="10" fill="none"
       stroke-linecap="round"
@@ -248,11 +248,21 @@ export default async function handler(req, res) {
       transform="rotate(-90 80 32)"/>
     <text x="80" y="40" text-anchor="middle" font-size="30" font-weight="1000" fill="#E9FFF3"
           font-family="system-ui,Segoe UI,Roboto,Arial">${grade}</text>
+    <text x="80" y="58" text-anchor="middle" font-size="11" font-weight="900"
+          fill="rgba(210,255,232,0.60)" font-family="system-ui,Segoe UI,Roboto,Arial">Grade</text>
   </g>
+
+  <text x="460" y="428" text-anchor="middle" font-size="11" font-weight="800"
+        fill="rgba(210,255,232,0.50)" font-family="system-ui,Segoe UI,Roboto,Arial">
+    ⚡ Live Stats • Powered by GitHub API • Hosted on Vercel
+  </text>
 </svg>`.trim();
 
     res.setHeader("Content-Type", "image/svg+xml");
-    res.setHeader("Cache-Control", "public, max-age=1800, s-maxage=1800, stale-while-revalidate=3600");
+    res.setHeader(
+      "Cache-Control",
+      "public, max-age=1800, s-maxage=1800, stale-while-revalidate=3600"
+    );
     res.status(200).send(svg);
   } catch (e) {
     res.setHeader("Content-Type", "image/svg+xml");
@@ -276,19 +286,19 @@ function miniBox(x, y, label, value, w = 256, h = 74) {
     <rect x="${x}" y="${y}" width="${w}" height="${h}" rx="16"
           fill="rgba(0,0,0,0.35)"
           stroke="rgba(255,255,255,0.06)"/>
-    <text x="${x + 18}" y="${y + 22}" font-size="11" font-weight="900"
+    <text x="${x + 18}" y="${y + 24}" font-size="11" font-weight="900"
           fill="rgba(210,255,232,0.60)" font-family="system-ui,Segoe UI,Roboto,Arial">${label}</text>
-    <text x="${x + 18}" y="${y + 46}" font-size="22" font-weight="1000"
+    <text x="${x + 18}" y="${y + 50}" font-size="22" font-weight="1000"
           fill="#00FF96" font-family="system-ui,Segoe UI,Roboto,Arial">${value}</text>
   </g>`;
 }
 
-function rowText(x, y, label, value) {
+function rowLine(x, y, label, value) {
   return `
   <g>
-    <text x="${x}" y="${y}" font-size="12" font-weight="1000"
+    <text x="${x}" y="${y}" font-size="13" font-weight="900"
           fill="rgba(210,255,232,0.72)" font-family="system-ui,Segoe UI,Roboto,Arial">${label}</text>
-    <text x="${x + 55}" y="${y}" font-size="12" font-weight="1000"
+    <text x="${x + 240}" y="${y}" font-size="14" font-weight="1000"
           fill="#E9FFF3" font-family="system-ui,Segoe UI,Roboto,Arial">${value}</text>
   </g>`;
 }
@@ -331,7 +341,9 @@ function computeStreaks(days) {
   // current streak
   let i = days.length - 1;
   while (i >= 0 && !isContrib(days[i])) i--;
-  let curLen = 0, curStart = null, curEnd = null;
+  let curLen = 0,
+    curStart = null,
+    curEnd = null;
   if (i >= 0) {
     curEnd = days[i].date;
     while (i >= 0 && isContrib(days[i])) {
@@ -342,8 +354,12 @@ function computeStreaks(days) {
   }
 
   // longest streak
-  let bestLen = 0, bestStart = null, bestEnd = null;
-  let runLen = 0, runStart = null;
+  let bestLen = 0,
+    bestStart = null,
+    bestEnd = null;
+  let runLen = 0,
+    runStart = null;
+
   for (let j = 0; j < days.length; j++) {
     if (isContrib(days[j])) {
       if (runLen === 0) runStart = days[j].date;
