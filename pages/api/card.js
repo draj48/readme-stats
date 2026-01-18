@@ -130,7 +130,11 @@ export default async function handler(req, res) {
 
     // ---------- SVG sizes ----------
     const W = 920;
-    const H = 440; // ✅ bigger card
+    const H = 440; // same height, only sections swapped
+
+    // Layout Y constants
+    const PROFILE_Y = 28;      // profile section start
+    const STREAK_Y = 248;      // streak section start
 
     const svg = `
 <svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
@@ -160,87 +164,48 @@ export default async function handler(req, res) {
         stroke-width="2"
         filter="url(#shadow)"/>
 
-  <!-- ===== TOP: STREAK CARD ===== -->
-  <g>
-    <rect x="34" y="28" width="${W - 68}" height="132" rx="18"
-          fill="rgba(0,0,0,0.33)"
-          stroke="rgba(255,255,255,0.06)"/>
+  <!-- ========================= -->
+  <!--  TOP (2): PROFILE CARD ✅  -->
+  <!-- ========================= -->
 
-    <line x1="${W/3}" y1="44" x2="${W/3}" y2="148" stroke="rgba(255,255,255,0.09)"/>
-    <line x1="${(W/3)*2}" y1="44" x2="${(W/3)*2}" y2="148" stroke="rgba(255,255,255,0.09)"/>
-
-    <!-- LEFT -->
-    <text x="120" y="82" text-anchor="middle" font-size="36" font-weight="1000"
-          fill="#71ffa8" font-family="system-ui,Segoe UI,Roboto,Arial">${totalContributions}</text>
-    <text x="120" y="110" text-anchor="middle" font-size="13" font-weight="900"
-          fill="#bfffe0" font-family="system-ui,Segoe UI,Roboto,Arial">Total Contributions</text>
-    <text x="120" y="134" text-anchor="middle" font-size="11" font-weight="800"
-          fill="rgba(210,255,232,0.62)" font-family="system-ui,Segoe UI,Roboto,Arial">
-      ${startDateLabel} - Present
-    </text>
-
-    <!-- MIDDLE ring -->
-    <g transform="translate(${(W/2)-70},54)">
-      <circle cx="70" cy="40" r="34" stroke="rgba(113,255,168,0.18)" stroke-width="10" fill="none"/>
-      <circle cx="70" cy="40" r="34" stroke="#71ffa8" stroke-width="10" fill="none"
-              stroke-linecap="round"
-              stroke-dasharray="${Math.min(220, 30 + currentStreak*12)} 999"
-              transform="rotate(-90 70 40)"/>
-      <text x="70" y="48" text-anchor="middle" font-size="24" font-weight="1000"
-            fill="#E9FFF3" font-family="system-ui,Segoe UI,Roboto,Arial">${currentStreak}</text>
-    </g>
-    <text x="${W/2}" y="124" text-anchor="middle" font-size="13" font-weight="1000"
-          fill="#c8ffe7" font-family="system-ui,Segoe UI,Roboto,Arial">Current Streak</text>
-    <text x="${W/2}" y="146" text-anchor="middle" font-size="11" font-weight="800"
-          fill="rgba(210,255,232,0.62)" font-family="system-ui,Segoe UI,Roboto,Arial">
-      ${currentStart} - ${currentEnd}
-    </text>
-
-    <!-- RIGHT -->
-    <text x="${W - 120}" y="82" text-anchor="middle" font-size="36" font-weight="1000"
-          fill="#71ffa8" font-family="system-ui,Segoe UI,Roboto,Arial">${longestStreak}</text>
-    <text x="${W - 120}" y="110" text-anchor="middle" font-size="13" font-weight="900"
-          fill="#bfffe0" font-family="system-ui,Segoe UI,Roboto,Arial">Longest Streak</text>
-    <text x="${W - 120}" y="134" text-anchor="middle" font-size="11" font-weight="800"
-          fill="rgba(210,255,232,0.62)" font-family="system-ui,Segoe UI,Roboto,Arial">
-      ${longestStart} - ${longestEnd}
-    </text>
-  </g>
-
-  <!-- ===== BOTTOM: PROFILE CARD ===== -->
+  <!-- Profile section background -->
+  <rect x="34" y="${PROFILE_Y}" width="${W - 68}" height="200" rx="18"
+        fill="rgba(0,0,0,0.33)"
+        stroke="rgba(255,255,255,0.06)"/>
 
   <!-- Avatar -->
-  <g transform="translate(42,250)">
+  <g transform="translate(52,${PROFILE_Y + 22})">
     <clipPath id="clip">
-      <rect x="0" y="0" width="56" height="56" rx="14"/>
+      <rect x="0" y="0" width="60" height="60" rx="16"/>
     </clipPath>
-    <rect x="-3" y="-3" width="62" height="62" rx="16"
+    <rect x="-4" y="-4" width="68" height="68" rx="18"
           fill="rgba(0,255,150,0.10)" stroke="rgba(0,255,150,0.22)"/>
-    <image href="${avatarDataUri}" x="0" y="0" width="56" height="56" clip-path="url(#clip)"/>
+    <image href="${avatarDataUri}" x="0" y="0" width="60" height="60" clip-path="url(#clip)"/>
   </g>
 
   <!-- Name -->
-  <text x="114" y="276" font-size="20" font-weight="1000" fill="#E9FFF3"
+  <text x="134" y="${PROFILE_Y + 56}" font-size="22" font-weight="1000" fill="#E9FFF3"
         font-family="system-ui,Segoe UI,Roboto,Arial">${name}</text>
-  <text x="114" y="296" font-size="12" font-weight="800" fill="rgba(210,255,232,0.65)"
+  <text x="134" y="${PROFILE_Y + 78}" font-size="12" font-weight="900"
+        fill="rgba(210,255,232,0.65)"
         font-family="system-ui,Segoe UI,Roboto,Arial">@${login}</text>
 
   <!-- Mini cards -->
-  ${miniBox(42, 312, "Followers", followers, 260, 60)}
-  ${miniBox(330, 312, "Following", following, 260, 60)}
-  ${miniBox(618, 312, "Public Repos", publicRepos, 260, 60)}
+  ${miniBox(52, PROFILE_Y + 104, "Followers", followers, 260, 64)}
+  ${miniBox(340, PROFILE_Y + 104, "Following", following, 260, 64)}
+  ${miniBox(628, PROFILE_Y + 104, "Public Repos", publicRepos, 260, 64)}
 
-  <!-- Stats (CLEAR) -->
-  <text x="60" y="392" font-size="14" font-weight="1000" fill="#DFFFEF"
+  <!-- Stats (clear) -->
+  <text x="70" y="${PROFILE_Y + 186}" font-size="14" font-weight="1000" fill="#DFFFEF"
         font-family="system-ui,Segoe UI,Roboto,Arial">GitHub Stats</text>
 
-  ${rowLine(60, 417, "Total Stars Earned", totalStars)}
-  ${rowLine(60, 438, "Total PRs", totalPRs)}
-  ${rowLine(360, 417, "Total Issues", totalIssues)}
-  ${rowLine(360, 438, "Merged PRs", mergedPRs)}
+  ${rowLine(70, PROFILE_Y + 210, "Total Stars Earned", totalStars)}
+  ${rowLine(70, PROFILE_Y + 232, "Total PRs", totalPRs)}
+  ${rowLine(370, PROFILE_Y + 210, "Total Issues", totalIssues)}
+  ${rowLine(370, PROFILE_Y + 232, "Merged PRs", mergedPRs)}
 
   <!-- Grade ring -->
-  <g transform="translate(748,350)">
+  <g transform="translate(748,${PROFILE_Y + 132})">
     <circle cx="80" cy="32" r="42" stroke="rgba(0,255,150,0.14)" stroke-width="10" fill="none"/>
     <circle cx="80" cy="32" r="42" stroke="#00FF96" stroke-width="10" fill="none"
       stroke-linecap="round"
@@ -252,7 +217,56 @@ export default async function handler(req, res) {
           fill="rgba(210,255,232,0.60)" font-family="system-ui,Segoe UI,Roboto,Arial">Grade</text>
   </g>
 
-  <text x="460" y="428" text-anchor="middle" font-size="11" font-weight="800"
+  <!-- ========================= -->
+  <!--  BOTTOM (1): STREAK CARD ✅ -->
+  <!-- ========================= -->
+
+  <rect x="34" y="${STREAK_Y}" width="${W - 68}" height="160" rx="18"
+        fill="rgba(0,0,0,0.33)"
+        stroke="rgba(255,255,255,0.06)"/>
+
+  <line x1="${W/3}" y1="${STREAK_Y + 18}" x2="${W/3}" y2="${STREAK_Y + 142}" stroke="rgba(255,255,255,0.09)"/>
+  <line x1="${(W/3)*2}" y1="${STREAK_Y + 18}" x2="${(W/3)*2}" y2="${STREAK_Y + 142}" stroke="rgba(255,255,255,0.09)"/>
+
+  <!-- LEFT: Total Contributions -->
+  <text x="120" y="${STREAK_Y + 66}" text-anchor="middle" font-size="38" font-weight="1000"
+        fill="#71ffa8" font-family="system-ui,Segoe UI,Roboto,Arial">${totalContributions}</text>
+  <text x="120" y="${STREAK_Y + 94}" text-anchor="middle" font-size="13" font-weight="900"
+        fill="#bfffe0" font-family="system-ui,Segoe UI,Roboto,Arial">Total Contributions</text>
+  <text x="120" y="${STREAK_Y + 118}" text-anchor="middle" font-size="11" font-weight="800"
+        fill="rgba(210,255,232,0.62)" font-family="system-ui,Segoe UI,Roboto,Arial">
+    ${startDateLabel} - Present
+  </text>
+
+  <!-- MIDDLE: Current streak ring -->
+  <g transform="translate(${(W/2)-70},${STREAK_Y + 30})">
+    <circle cx="70" cy="44" r="36" stroke="rgba(113,255,168,0.18)" stroke-width="10" fill="none"/>
+    <circle cx="70" cy="44" r="36" stroke="#71ffa8" stroke-width="10" fill="none"
+            stroke-linecap="round"
+            stroke-dasharray="${Math.min(240, 30 + currentStreak*12)} 999"
+            transform="rotate(-90 70 44)"/>
+    <text x="70" y="52" text-anchor="middle" font-size="26" font-weight="1000"
+          fill="#E9FFF3" font-family="system-ui,Segoe UI,Roboto,Arial">${currentStreak}</text>
+  </g>
+  <text x="${W/2}" y="${STREAK_Y + 120}" text-anchor="middle" font-size="13" font-weight="1000"
+        fill="#c8ffe7" font-family="system-ui,Segoe UI,Roboto,Arial">Current Streak</text>
+  <text x="${W/2}" y="${STREAK_Y + 142}" text-anchor="middle" font-size="11" font-weight="800"
+        fill="rgba(210,255,232,0.62)" font-family="system-ui,Segoe UI,Roboto,Arial">
+    ${currentStart} - ${currentEnd}
+  </text>
+
+  <!-- RIGHT: Longest streak -->
+  <text x="${W - 120}" y="${STREAK_Y + 66}" text-anchor="middle" font-size="38" font-weight="1000"
+        fill="#71ffa8" font-family="system-ui,Segoe UI,Roboto,Arial">${longestStreak}</text>
+  <text x="${W - 120}" y="${STREAK_Y + 94}" text-anchor="middle" font-size="13" font-weight="900"
+        fill="#bfffe0" font-family="system-ui,Segoe UI,Roboto,Arial">Longest Streak</text>
+  <text x="${W - 120}" y="${STREAK_Y + 118}" text-anchor="middle" font-size="11" font-weight="800"
+        fill="rgba(210,255,232,0.62)" font-family="system-ui,Segoe UI,Roboto,Arial">
+    ${longestStart} - ${longestEnd}
+  </text>
+
+  <!-- footer -->
+  <text x="460" y="${H - 24}" text-anchor="middle" font-size="11" font-weight="800"
         fill="rgba(210,255,232,0.50)" font-family="system-ui,Segoe UI,Roboto,Arial">
     ⚡ Live Stats • Powered by GitHub API • Hosted on Vercel
   </text>
@@ -288,7 +302,7 @@ function miniBox(x, y, label, value, w = 256, h = 74) {
           stroke="rgba(255,255,255,0.06)"/>
     <text x="${x + 18}" y="${y + 24}" font-size="11" font-weight="900"
           fill="rgba(210,255,232,0.60)" font-family="system-ui,Segoe UI,Roboto,Arial">${label}</text>
-    <text x="${x + 18}" y="${y + 50}" font-size="22" font-weight="1000"
+    <text x="${x + 18}" y="${y + 52}" font-size="22" font-weight="1000"
           fill="#00FF96" font-family="system-ui,Segoe UI,Roboto,Arial">${value}</text>
   </g>`;
 }
@@ -305,14 +319,14 @@ function rowLine(x, y, label, value) {
 
 function calcDash(grade, r) {
   const total = Math.floor(2 * Math.PI * r);
-  const pct = grade === "S" ? 0.95 : grade === "A" ? 0.80 : grade === "B" ? 0.60 : 0.40;
+  const pct = grade === "S" ? 0.95 : grade === "A" ? 0.8 : grade === "B" ? 0.6 : 0.4;
   return Math.floor(total * pct);
 }
 
 function errorSVG(msg) {
   const safe = escapeXML(msg);
   return `
-<svg xmlns="http://www.w3.org/2000/svg" width="920" height="180">
+<svg xmlns="http://www.w3.org/2000/svg" width="920" height="200">
   <rect width="100%" height="100%" rx="22" fill="#050705"/>
   <text x="50%" y="50%" text-anchor="middle" fill="#00ff96"
     font-family="system-ui,Segoe UI,Roboto,Arial" font-weight="900" font-size="18">${safe}</text>
