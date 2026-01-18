@@ -204,4 +204,3 @@ async function fetchAsBase64(url) {
   return Buffer.from(binary, "binary").toString("base64");
 }
 
-ok
